@@ -18,7 +18,7 @@ A modern portfolio website for freelancers built with Next.js and TailwindCSS. T
 - [TailwindCSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [Framer Motion](https://www.framer.com/motion/) - Animation library
 - [React Icons](https://react-icons.github.io/react-icons/) - Icon library
-- [Resend](https://resend.com) - Email API for contact form
+- [EmailJS](https://www.emailjs.com/) - Email API for contact form
 
 ## Getting Started
 
@@ -26,7 +26,7 @@ A modern portfolio website for freelancers built with Next.js and TailwindCSS. T
 
 - Node.js 14.6.0 or newer
 - npm or yarn
-- [Resend](https://resend.com) account (free tier available)
+- [EmailJS](https://www.emailjs.com/) account (free tier available)
 
 ### Installation
 
@@ -43,11 +43,10 @@ npm install
 yarn install
 ```
 
-3. Create a `.env.local` file in the root directory with the following variables:
-```
-EMAIL_ADDRESS=your-email@example.com
-RESEND_API_KEY=re_xxxxxxxxxxxx  # Get this from Resend dashboard
-```
+3. Configure EmailJS (see detailed instructions in `src/app/sections/README-EMAILJS.md`)
+   - Create an EmailJS account
+   - Set up email service and template
+   - Update the config in `src/app/sections/ContactSection.tsx`
 
 4. Run the development server
 ```bash
@@ -58,23 +57,35 @@ yarn dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 
-## Setting Up Email with Resend
+## Setting Up Email with EmailJS
 
-This project uses [Resend](https://resend.com) to handle contact form submissions. Resend is a modern email API service with a generous free tier (100 emails/month).
+This project uses [EmailJS](https://www.emailjs.com/) to handle contact form submissions. EmailJS is a service that allows you to send emails directly from client-side JavaScript code, without needing a backend.
 
-1. **Create a Resend Account**
-   - Sign up at [resend.com](https://resend.com/signup)
-   - Verify your account and domain (if desired)
+### Key Benefits
 
-2. **Get your API Key**
-   - Go to the [API Keys](https://resend.com/api-keys) section in your Resend dashboard
-   - Create a new API key
-   - Copy the API key and add it to your `.env.local` file as `RESEND_API_KEY`
+1. **Simple to Set Up**: No server-side code required
+2. **Generous Free Tier**: 200 emails per month on the free plan
+3. **Secure**: Your email credentials are never exposed in your code
+4. **Direct Integration**: Works with most email providers like Gmail, Outlook, etc.
 
-3. **Understanding Email Sending**
-   - During development or when first deploying, emails will be sent from `onboarding@resend.dev`
-   - For production use, you can verify your domain in the Resend dashboard
-   - The contact form is set up to use your `EMAIL_ADDRESS` as the recipient
+### Quick Setup
+
+1. **Create an EmailJS Account**
+   - Sign up at [emailjs.com](https://www.emailjs.com/signup)
+   - Verify your account
+
+2. **Connect Your Email Service**
+   - Add a new email service (Gmail, Outlook, etc.)
+   - Follow the authentication steps
+
+3. **Create an Email Template**
+   - Create a template with variables for name, email, subject, and message
+   - Note the template ID
+
+4. **Update Your Config**
+   - Set the service ID, template ID, and public key in the ContactSection component
+
+For detailed instructions, see `src/app/sections/README-EMAILJS.md`.
 
 ## Deployment on Vercel
 
@@ -98,16 +109,11 @@ This project is optimized for deployment on Vercel. Follow these steps to deploy
      - Build Command: `next build`
      - Output Directory: `.next`
    
-4. **Configure Environment Variables**
-   - In the Vercel project settings, add environment variables:
-   - Add `EMAIL_ADDRESS` with your email address (this will only be available server-side)
-   - Add `RESEND_API_KEY` with your Resend API key
-
-5. **Deploy**
+4. **Deploy**
    - Click "Deploy" and wait for the build to complete
    - Your site will be accessible at a `.vercel.app` URL 
 
-6. **Custom Domain (Optional)**
+5. **Custom Domain (Optional)**
    - In project settings, navigate to "Domains"
    - Add your custom domain and follow the verification steps
 
@@ -117,15 +123,15 @@ The project includes a `vercel.json` configuration file with optimized settings 
 
 This project includes several security measures:
 
-1. **Environment Variables**: Sensitive information like email addresses and API keys are stored in environment variables that are only accessible on the server side.
+1. **API Routes**: Contact form submissions are processed through a server-side API route for initial validation.
 
-2. **API Routes**: Contact form submissions are processed through a server-side API route, keeping your email address hidden from client-side code.
+2. **Client-Side Email**: Email sending is handled securely by EmailJS on the client side.
 
 3. **Honeypot Trap**: The contact form includes a hidden honeypot field to detect and prevent spam submissions from bots.
 
 4. **Form Validation**: Input validation is performed on both client and server sides.
 
-5. **gitignore**: Sensitive files like `.env.local` are included in `.gitignore` to prevent accidentally committing them.
+5. **gitignore**: Sensitive files are included in `.gitignore` to prevent accidentally committing them.
 
 6. **Security Headers**: When deployed on Vercel, the application uses security headers to protect against common vulnerabilities.
 
@@ -133,7 +139,7 @@ This project includes several security measures:
 
 When deploying this project, make sure to:
 
-1. Set up environment variables on your hosting platform
+1. Configure EmailJS properly with your service and template IDs
 2. Consider adding additional security measures such as reCAPTCHA for the contact form
 3. Keep your dependencies updated to address any security vulnerabilities
 
@@ -154,4 +160,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - All icons provided by [React Icons](https://react-icons.github.io/react-icons/)
 - Design inspiration from various sources on Dribbble and Behance
-- Email functionality powered by [Resend](https://resend.com)
+- Email functionality powered by [EmailJS](https://www.emailjs.com/)

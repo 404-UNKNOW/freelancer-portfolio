@@ -2,11 +2,18 @@
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
+import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
+import emailjs from '@emailjs/browser';
+
+// EmailJS服务配置 - 这些ID是公开的，可以安全地包含在客户端代码中
+// 用您在EmailJS网站上创建的实际ID替换这些值
+const EMAILJS_SERVICE_ID = 'service_contact_form'; // 在EmailJS控制面板创建的服务ID
+const EMAILJS_TEMPLATE_ID = 'template_contact_form'; // 在EmailJS控制面板创建的模板ID
+const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY'; // 您的EmailJS公钥
 
 const ContactSection = () => {
-  // 从环境变量获取邮箱地址
-  const emailAddress = process.env.NEXT_PUBLIC_EMAIL_ADDRESS || 'your-email@example.com';
+  // 添加目标邮箱作为常量（推荐在环境变量中设置，但这里作为示例直接设置）
+  const emailAddress = 'inorigc777@gmail.com';
   
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +26,7 @@ const ContactSection = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<null | 'success' | 'error'>(null);
+  const [errorMessage, setErrorMessage] = useState('');
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -34,53 +42,89 @@ const ContactSection = () => {
     // 如果蜜罐字段被填写，阻止表单提交（可能是机器人）
     if (formData.honeypot) {
       console.log('Bot detected');
+      setSubmitStatus('success'); // 假装成功，防止机器人检测到它们被拒绝
       return;
     }
     
     setIsSubmitting(true);
+    setErrorMessage('');
     
     try {
-      // 使用FormSubmit.co服务发送邮件，不需要后端代码
-      const response = await fetch(`https://formsubmit.co/${emailAddress}`, {
+      // 使用EmailJS发送邮件
+      // 先验证表单数据
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message
-        })
+        body: JSON.stringify(formData)
       });
       
-      if (response.ok) {
-        setSubmitStatus('success');
-        // 重置表单
-        setFormData({
-          name: '',
-          email: '',
-          subject: '',
-          message: '',
-          honeypot: ''
-        });
-        
-        if (formRef.current) {
-          formRef.current.reset();
-        }
-      } else {
-        setSubmitStatus('error');
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || '表单验证失败');
       }
-    } catch (error) {
+      
+      // 使用EmailJS发送邮件
+      if (formRef.current) {
+        const templateParams = {
+          from_name: formData.name,
+          from_email: formData.email,
+          to_email: emailAddress,
+          subject: formData.subject,
+          message: formData.message
+        };
+        
+        console.log('发送邮件，参数:', templateParams);
+        
+        try {
+          // 初始化EmailJS (如果未提前在页面中初始化过)
+          emailjs.init(EMAILJS_PUBLIC_KEY);
+          
+          const emailjsResponse = await emailjs.send(
+            EMAILJS_SERVICE_ID,
+            EMAILJS_TEMPLATE_ID,
+            templateParams
+          );
+          
+          console.log('EmailJS响应:', emailjsResponse);
+          
+          if (emailjsResponse.status === 200) {
+            setSubmitStatus('success');
+            // 重置表单
+            setFormData({
+              name: '',
+              email: '',
+              subject: '',
+              message: '',
+              honeypot: ''
+            });
+            
+            if (formRef.current) {
+              formRef.current.reset();
+            }
+          } else {
+            throw new Error('邮件发送失败');
+          }
+        } catch (emailError: any) {
+          console.error('EmailJS错误:', emailError);
+          setSubmitStatus('error');
+          setErrorMessage(`邮件发送失败: ${emailError.message || '未知错误'}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('提交错误:', error);
       setSubmitStatus('error');
+      setErrorMessage(error.message || '发送失败，请稍后重试');
     } finally {
       setIsSubmitting(false);
       
-      // 3秒后清除状态信息
+      // 5秒后清除状态信息
       setTimeout(() => {
         setSubmitStatus(null);
-      }, 3000);
+        setErrorMessage('');
+      }, 5000);
     }
   };
   
@@ -190,7 +234,7 @@ const ContactSection = () => {
               
               {submitStatus === 'error' && (
                 <div className="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-                  Failed to send. Please try again later or email directly to {emailAddress}.
+                  {errorMessage || 'Failed to send. Please try again later or email directly to ' + emailAddress}
                 </div>
               )}
               
@@ -259,19 +303,28 @@ const ContactSection = () => {
                     onChange={handleChange}
                     required
                     rows={5}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="Please describe your requirements in detail..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                    placeholder="Your message"
                   ></textarea>
                 </div>
                 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="btn-primary w-full flex items-center justify-center gap-2"
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Sending...' : (
+                  {isSubmitting ? (
                     <>
-                      Send Message <FaPaperPlane />
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <FaPaperPlane className="mr-2" />
+                      Send Message
                     </>
                   )}
                 </button>
