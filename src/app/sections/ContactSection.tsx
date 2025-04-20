@@ -5,14 +5,13 @@ import { motion } from 'framer-motion';
 import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
 import emailjs from '@emailjs/browser';
 
-// EmailJS服务配置 - 这些ID是公开的，可以安全地包含在客户端代码中
-// 用您在EmailJS网站上创建的实际ID替换这些值
-const EMAILJS_SERVICE_ID = 'service_contact_form'; // 在EmailJS控制面板创建的服务ID
-const EMAILJS_TEMPLATE_ID = 'template_contact_form'; // 在EmailJS控制面板创建的模板ID
-const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY'; // 您的EmailJS公钥
+// EmailJS服务配置 - 使用真实的EmailJS配置
+const EMAILJS_SERVICE_ID = 'service_h77r199'; // EmailJS服务ID
+const EMAILJS_TEMPLATE_ID = 'template_lil7dq7'; // EmailJS模板ID
+const EMAILJS_PUBLIC_KEY = '6a0liRyqZ17MYLzG1'; // EmailJS公钥
 
 const ContactSection = () => {
-  // 添加目标邮箱作为常量（推荐在环境变量中设置，但这里作为示例直接设置）
+  // 添加目标邮箱作为常量
   const emailAddress = 'inorigc777@gmail.com';
   
   const [formData, setFormData] = useState({
@@ -51,67 +50,61 @@ const ContactSection = () => {
     
     try {
       // 使用EmailJS发送邮件
-      // 先验证表单数据
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+      // 先验证基本表单数据
+      if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+        throw new Error('所有字段都是必填的');
+      }
       
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || '表单验证失败');
+      // 验证邮箱格式
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error('请提供有效的电子邮件地址');
       }
       
       // 使用EmailJS发送邮件
-      if (formRef.current) {
-        const templateParams = {
-          from_name: formData.name,
-          from_email: formData.email,
-          to_email: emailAddress,
-          subject: formData.subject,
-          message: formData.message
-        };
+      const templateParams = {
+        from_name: formData.name,
+        from_email: formData.email,
+        to_email: emailAddress,
+        subject: formData.subject,
+        message: formData.message
+      };
+      
+      console.log('发送邮件，参数:', templateParams);
+      
+      try {
+        // 初始化EmailJS
+        emailjs.init(EMAILJS_PUBLIC_KEY);
         
-        console.log('发送邮件，参数:', templateParams);
+        const emailjsResponse = await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          templateParams
+        );
         
-        try {
-          // 初始化EmailJS (如果未提前在页面中初始化过)
-          emailjs.init(EMAILJS_PUBLIC_KEY);
+        console.log('EmailJS响应:', emailjsResponse);
+        
+        if (emailjsResponse.status === 200) {
+          setSubmitStatus('success');
+          // 重置表单
+          setFormData({
+            name: '',
+            email: '',
+            subject: '',
+            message: '',
+            honeypot: ''
+          });
           
-          const emailjsResponse = await emailjs.send(
-            EMAILJS_SERVICE_ID,
-            EMAILJS_TEMPLATE_ID,
-            templateParams
-          );
-          
-          console.log('EmailJS响应:', emailjsResponse);
-          
-          if (emailjsResponse.status === 200) {
-            setSubmitStatus('success');
-            // 重置表单
-            setFormData({
-              name: '',
-              email: '',
-              subject: '',
-              message: '',
-              honeypot: ''
-            });
-            
-            if (formRef.current) {
-              formRef.current.reset();
-            }
-          } else {
-            throw new Error('邮件发送失败');
+          if (formRef.current) {
+            formRef.current.reset();
           }
-        } catch (emailError: any) {
-          console.error('EmailJS错误:', emailError);
-          setSubmitStatus('error');
-          setErrorMessage(`邮件发送失败: ${emailError.message || '未知错误'}`);
+        } else {
+          throw new Error('邮件发送失败');
         }
+      } catch (emailError: any) {
+        console.error('EmailJS错误:', emailError);
+        setSubmitStatus('error');
+        setErrorMessage(`邮件发送失败: ${emailError.message || '未知错误'}`);
       }
     } catch (error: any) {
       console.error('提交错误:', error);
