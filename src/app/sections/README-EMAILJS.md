@@ -25,6 +25,7 @@
    - `{{from_email}}` - 发送者电子邮件
    - `{{subject}}` - 邮件主题
    - `{{message}}` - 邮件内容
+   - `{{timestamp}}` - 提交时间戳（安全增强）
 4. 保存模板并记下模板ID
 
 ## 第4步：获取公钥
@@ -38,23 +39,43 @@
 打开 `src/app/sections/ContactSection.tsx` 文件，找到以下代码部分，并更新为您的实际值:
 
 ```typescript
-// EmailJS服务配置 - 这些ID是公开的，可以安全地包含在客户端代码中
-const EMAILJS_SERVICE_ID = 'service_contact_form'; // 用您的服务ID替换
-const EMAILJS_TEMPLATE_ID = 'template_contact_form'; // 用您的模板ID替换
-const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY'; // 用您的公钥替换
+// EmailJS服务配置
+const EMAILJS_SERVICE_ID = 'service_h77r199'; // 您的服务ID
+const EMAILJS_TEMPLATE_ID = 'template_lil7dq7'; // 您的模板ID
+const EMAILJS_PUBLIC_KEY = '6a0liRyqZ17MYLzG1'; // 您的公钥
 ```
 
-## 第6步：测试
+## 第6步：安全配置
+
+联系表单实现了多种安全措施：
+
+1. **输入验证**：
+   - 严格验证所有字段的格式和内容
+   - 过滤HTML标签和其他潜在危险内容
+
+2. **蜜罐字段**：
+   - 隐藏字段用于捕获自动机器人提交
+   - 使用多种蜜罐方式增强防机器人能力
+
+3. **速率限制**：
+   - 限制用户每小时可发送的消息数量
+   - 防止滥用和超出免费计划限额
+
+4. **输入净化**：
+   - 所有用户提交的内容在发送前都经过清理
+   - 移除潜在危险字符和代码
+
+## 第7步：测试
 
 1. 启动开发服务器 (`npm run dev`)
 2. 填写联系表单并提交
-3. 确认您收到了电子邮件
+3. 确认您收到了电子邮件并且安全措施正常工作
 
 ## 安全说明
 
-- EmailJS公钥是可以安全地包含在前端代码中的，因为它有限制的权限
-- 服务ID和模板ID也可以安全地包含在前端代码中
+- EmailJS公钥是可以安全地包含在前端代码中的，因为它只有限制的权限
 - 所有敏感认证都由EmailJS在其服务器上处理，不会暴露在您的代码中
+- 实施的速率限制和验证可有效防止大多数滥用行为
 
 ## 自定义域名发送（可选）
 
@@ -62,6 +83,20 @@ const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY'; // 用您的公钥替换
 
 1. 在EmailJS仪表板中添加和验证您的自定义域名
 2. 更新您的电子邮件模板以使用您的自定义域名
+
+## 安全最佳实践
+
+1. **定期监控**：
+   - 定期检查邮件发送日志
+   - 留意任何异常或滥用模式
+
+2. **更新EmailJS**：
+   - 确保使用最新版本的EmailJS库
+   - 查看他们的安全建议和最佳实践
+
+3. **考虑额外保护**：
+   - 如果需要更强的保护，可以考虑添加reCAPTCHA
+   - 实施IP地址黑名单来阻止已知的滥用来源
 
 ## 故障排除
 

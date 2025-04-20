@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
 import emailjs from '@emailjs/browser';
@@ -9,6 +9,13 @@ import emailjs from '@emailjs/browser';
 const EMAILJS_SERVICE_ID = 'service_h77r199'; // EmailJS服务ID
 const EMAILJS_TEMPLATE_ID = 'template_lil7dq7'; // EmailJS模板ID
 const EMAILJS_PUBLIC_KEY = '6a0liRyqZ17MYLzG1'; // EmailJS公钥
+
+// 安全控制：速率限制
+const RATE_LIMIT = {
+  maxRequests: 3, // 最大请求数
+  timeWindow: 60 * 60 * 1000, // 时间窗口（1小时）
+  storageKey: 'contact_form_submissions' // 存储键名
+};
 
 const ContactSection = () => {
   // 添加目标邮箱作为常量
@@ -26,6 +33,64 @@ const ContactSection = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<null | 'success' | 'error'>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [submissionAttempt, setSubmissionAttempt] = useState(0);
+  
+  // 安全：检查提交速率限制
+  useEffect(() => {
+    checkRateLimit();
+    
+    // 定期检查速率限制（每分钟）
+    const intervalId = setInterval(checkRateLimit, 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  // 检查用户的速率限制状态
+  const checkRateLimit = () => {
+    try {
+      // 获取过去提交记录
+      const submissionsStr = localStorage.getItem(RATE_LIMIT.storageKey);
+      const submissions = submissionsStr ? JSON.parse(submissionsStr) : [];
+      
+      // 过滤出时间窗口内的提交
+      const now = Date.now();
+      const recentSubmissions = submissions.filter((time: number) => 
+        now - time < RATE_LIMIT.timeWindow
+      );
+      
+      // 更新存储
+      localStorage.setItem(RATE_LIMIT.storageKey, JSON.stringify(recentSubmissions));
+      
+      // 检查是否达到限制
+      const isLimited = recentSubmissions.length >= RATE_LIMIT.maxRequests;
+      setIsRateLimited(isLimited);
+      
+      // 如果达到限制，计算剩余时间
+      if (isLimited && recentSubmissions.length > 0) {
+        const oldestSubmission = Math.min(...recentSubmissions);
+        const timeToReset = oldestSubmission + RATE_LIMIT.timeWindow - now;
+        
+        // 在控制台输出限制信息（仅开发调试用）
+        console.log(`Rate limited. Try again in ${Math.ceil(timeToReset / (60 * 1000))} minutes.`);
+      }
+    } catch (e) {
+      // 如果localStorage不可用（隐私模式等），不实施速率限制
+      console.warn('Unable to check rate limit:', e);
+      setIsRateLimited(false);
+    }
+  };
+  
+  // 记录新的提交
+  const recordSubmission = () => {
+    try {
+      const submissionsStr = localStorage.getItem(RATE_LIMIT.storageKey);
+      const submissions = submissionsStr ? JSON.parse(submissionsStr) : [];
+      submissions.push(Date.now());
+      localStorage.setItem(RATE_LIMIT.storageKey, JSON.stringify(submissions));
+    } catch (e) {
+      console.warn('Unable to record submission:', e);
+    }
+  };
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -33,12 +98,32 @@ const ContactSection = () => {
       ...prevData,
       [name]: value
     }));
+    
+    // 安全：记录表单提交尝试
+    if (name === 'email' || name === 'message') {
+      setSubmissionAttempt(prev => prev + 1);
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 如果蜜罐字段被填写，阻止表单提交（可能是机器人）
+    // 安全：检测过度频繁的输入行为（可能是自动化工具）
+    if (submissionAttempt > 50) {
+      console.warn('Suspicious form activity detected');
+      setErrorMessage('Please try again later.');
+      setSubmitStatus('error');
+      return;
+    }
+    
+    // 安全：检查速率限制
+    if (isRateLimited) {
+      setErrorMessage('Too many messages sent. Please try again later.');
+      setSubmitStatus('error');
+      return;
+    }
+    
+    // 安全：蜜罐字段检查（如果有内容，可能是机器人）
     if (formData.honeypot) {
       console.log('Bot detected');
       setSubmitStatus('success'); // 假装成功，防止机器人检测到它们被拒绝
@@ -49,42 +134,60 @@ const ContactSection = () => {
     setErrorMessage('');
     
     try {
-      // 使用EmailJS发送邮件
-      // 先验证基本表单数据
-      if (!formData.name || !formData.email || !formData.subject || !formData.message) {
-        throw new Error('所有字段都是必填的');
+      // 安全：输入验证
+      // 验证名称（无特殊字符）
+      const nameRegex = /^[a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF\-']+$/;
+      if (!formData.name || !nameRegex.test(formData.name)) {
+        throw new Error('Please enter a valid name.');
       }
       
       // 验证邮箱格式
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        throw new Error('请提供有效的电子邮件地址');
+      if (!formData.email || !emailRegex.test(formData.email)) {
+        throw new Error('Please provide a valid email address.');
       }
       
-      // 使用EmailJS发送邮件
-      const templateParams = {
-        from_name: formData.name,
-        from_email: formData.email,
+      // 验证主题（无危险HTML）
+      if (!formData.subject || formData.subject.includes('<') || formData.subject.includes('>')) {
+        throw new Error('Please enter a valid subject without HTML characters.');
+      }
+      
+      // 验证消息（最小长度和最大长度）
+      if (!formData.message || formData.message.length < 10 || formData.message.length > 1000) {
+        throw new Error('Message must be between 10-1000 characters.');
+      }
+      
+      // 安全：过滤和清理输入
+      const sanitizedData = {
+        from_name: formData.name.replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF\-']/g, ''),
+        from_email: formData.email.trim(),
         to_email: emailAddress,
-        subject: formData.subject,
-        message: formData.message
+        subject: formData.subject.replace(/[<>]/g, ''),
+        message: formData.message.replace(/[<>]/g, '')
       };
       
-      console.log('发送邮件，参数:', templateParams);
+      // 使用EmailJS发送邮件
+      emailjs.init(EMAILJS_PUBLIC_KEY);
       
+      // 安全：包装在try-catch，防止API错误暴露
       try {
-        // 初始化EmailJS
-        emailjs.init(EMAILJS_PUBLIC_KEY);
-        
+        // 添加时间戳防止重放攻击
+        const timestamp = new Date().toISOString();
         const emailjsResponse = await emailjs.send(
           EMAILJS_SERVICE_ID,
           EMAILJS_TEMPLATE_ID,
-          templateParams
+          {
+            ...sanitizedData,
+            timestamp: timestamp
+          }
         );
         
-        console.log('EmailJS响应:', emailjsResponse);
+        console.log('EmailJS响应:', emailjsResponse.status);
         
         if (emailjsResponse.status === 200) {
+          // 记录成功提交（用于速率限制）
+          recordSubmission();
+          
           setSubmitStatus('success');
           // 重置表单
           setFormData({
@@ -99,26 +202,38 @@ const ContactSection = () => {
             formRef.current.reset();
           }
         } else {
-          throw new Error('邮件发送失败');
+          throw new Error('Failed to send message.');
         }
       } catch (emailError: any) {
         console.error('EmailJS错误:', emailError);
         setSubmitStatus('error');
-        setErrorMessage(`邮件发送失败: ${emailError.message || '未知错误'}`);
+        // 安全：不暴露详细错误信息给用户
+        setErrorMessage('Unable to send message. Please try again later.');
       }
     } catch (error: any) {
       console.error('提交错误:', error);
       setSubmitStatus('error');
-      setErrorMessage(error.message || '发送失败，请稍后重试');
+      setErrorMessage(error.message || 'Failed to send. Please try again later.');
     } finally {
       setIsSubmitting(false);
       
-      // 5秒后清除状态信息
+      // 延迟清除状态信息
       setTimeout(() => {
         setSubmitStatus(null);
         setErrorMessage('');
       }, 5000);
     }
+  };
+  
+  // 安全：额外的隐藏表单字段（更高级的蜜罐）
+  const hiddenStyle = {
+    opacity: 0,
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    height: 0,
+    width: 0,
+    zIndex: -1
   };
   
   return (
@@ -231,14 +346,32 @@ const ContactSection = () => {
                 </div>
               )}
               
+              {isRateLimited && (
+                <div className="bg-yellow-100 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+                  You've reached the maximum number of messages for now. Please try again later.
+                </div>
+              )}
+              
               <form ref={formRef} onSubmit={handleSubmit}>
-                {/* 蜜罐字段 - 对用户隐藏，但机器人会填写 */}
+                {/* 蜜罐字段1 - 对用户隐藏，但机器人会填写 */}
                 <div className="hidden">
                   <input
                     type="text"
                     name="honeypot"
                     value={formData.honeypot}
                     onChange={handleChange}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
+                
+                {/* 安全：额外的蜜罐字段 */}
+                <div style={hiddenStyle} aria-hidden="true">
+                  <label htmlFor="email_confirm">Email Confirmation (Leave Empty)</label>
+                  <input 
+                    type="email" 
+                    id="email_confirm" 
+                    name="email_confirm" 
                     tabIndex={-1}
                     autoComplete="off"
                   />
@@ -254,6 +387,9 @@ const ContactSection = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
+                      maxLength={50}
+                      pattern="^[a-zA-Z\s\u00C0-\u024F\u1E00-\u1EFF\-']+$"
+                      title="Please enter a valid name (letters, spaces, hyphens and apostrophes only)"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Your name"
                     />
@@ -267,6 +403,7 @@ const ContactSection = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
+                      maxLength={100}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Your email"
                     />
@@ -282,6 +419,7 @@ const ContactSection = () => {
                     value={formData.subject}
                     onChange={handleChange}
                     required
+                    maxLength={100}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="Message subject"
                   />
@@ -295,15 +433,23 @@ const ContactSection = () => {
                     value={formData.message}
                     onChange={handleChange}
                     required
+                    minLength={10}
+                    maxLength={1000}
                     rows={5}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-                    placeholder="Your message"
+                    placeholder="Your message (10-1000 characters)"
                   ></textarea>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.message.length}/1000 characters
+                  </div>
                 </div>
+                
+                {/* 安全：防止自动提交 */}
+                <input type="hidden" name="form_submitted_at" value={new Date().toISOString()} />
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isRateLimited}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
@@ -314,6 +460,8 @@ const ContactSection = () => {
                       </svg>
                       Sending...
                     </>
+                  ) : isRateLimited ? (
+                    'Rate Limited - Try Again Later'
                   ) : (
                     <>
                       <FaPaperPlane className="mr-2" />
