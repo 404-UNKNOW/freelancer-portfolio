@@ -18,6 +18,7 @@ A modern portfolio website for freelancers built with Next.js and TailwindCSS. T
 - [TailwindCSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [Framer Motion](https://www.framer.com/motion/) - Animation library
 - [React Icons](https://react-icons.github.io/react-icons/) - Icon library
+- [Resend](https://resend.com) - Email API for contact form
 
 ## Getting Started
 
@@ -25,6 +26,7 @@ A modern portfolio website for freelancers built with Next.js and TailwindCSS. T
 
 - Node.js 14.6.0 or newer
 - npm or yarn
+- [Resend](https://resend.com) account (free tier available)
 
 ### Installation
 
@@ -44,6 +46,7 @@ yarn install
 3. Create a `.env.local` file in the root directory with the following variables:
 ```
 EMAIL_ADDRESS=your-email@example.com
+RESEND_API_KEY=re_xxxxxxxxxxxx  # Get this from Resend dashboard
 ```
 
 4. Run the development server
@@ -54,6 +57,24 @@ yarn dev
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+
+## Setting Up Email with Resend
+
+This project uses [Resend](https://resend.com) to handle contact form submissions. Resend is a modern email API service with a generous free tier (100 emails/month).
+
+1. **Create a Resend Account**
+   - Sign up at [resend.com](https://resend.com/signup)
+   - Verify your account and domain (if desired)
+
+2. **Get your API Key**
+   - Go to the [API Keys](https://resend.com/api-keys) section in your Resend dashboard
+   - Create a new API key
+   - Copy the API key and add it to your `.env.local` file as `RESEND_API_KEY`
+
+3. **Understanding Email Sending**
+   - During development or when first deploying, emails will be sent from `onboarding@resend.dev`
+   - For production use, you can verify your domain in the Resend dashboard
+   - The contact form is set up to use your `EMAIL_ADDRESS` as the recipient
 
 ## Deployment on Vercel
 
@@ -80,6 +101,7 @@ This project is optimized for deployment on Vercel. Follow these steps to deploy
 4. **Configure Environment Variables**
    - In the Vercel project settings, add environment variables:
    - Add `EMAIL_ADDRESS` with your email address (this will only be available server-side)
+   - Add `RESEND_API_KEY` with your Resend API key
 
 5. **Deploy**
    - Click "Deploy" and wait for the build to complete
@@ -95,7 +117,7 @@ The project includes a `vercel.json` configuration file with optimized settings 
 
 This project includes several security measures:
 
-1. **Environment Variables**: Sensitive information like email addresses are stored in environment variables that are only accessible on the server side.
+1. **Environment Variables**: Sensitive information like email addresses and API keys are stored in environment variables that are only accessible on the server side.
 
 2. **API Routes**: Contact form submissions are processed through a server-side API route, keeping your email address hidden from client-side code.
 
@@ -132,3 +154,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - All icons provided by [React Icons](https://react-icons.github.io/react-icons/)
 - Design inspiration from various sources on Dribbble and Behance
+- Email functionality powered by [Resend](https://resend.com)

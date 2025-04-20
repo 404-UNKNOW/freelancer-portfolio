@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
 export async function POST(request: Request) {
   try {
@@ -28,43 +29,77 @@ export async function POST(request: Request) {
       );
     }
     
-    // 获取环境变量中的邮箱地址（注意没有NEXT_PUBLIC_前缀）
+    // 获取环境变量
     const toEmail = process.env.EMAIL_ADDRESS;
-    if (!toEmail) {
-      console.error('未配置EMAIL_ADDRESS环境变量');
+    const resendApiKey = process.env.RESEND_API_KEY;
+    
+    if (!toEmail || !resendApiKey) {
+      console.error('未配置必要的环境变量(EMAIL_ADDRESS或RESEND_API_KEY)');
       return NextResponse.json(
         { error: '服务器配置错误' },
         { status: 500 }
       );
     }
     
-    // 使用FormSubmit.co API发送邮件，但在服务器端处理，不在客户端暴露邮箱
-    const formSubmitResponse = await fetch(`https://formsubmit.co/${toEmail}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        subject,
-        message
-      })
-    });
+    // 创建Resend客户端
+    const resend = new Resend(resendApiKey);
     
-    if (!formSubmitResponse.ok) {
+    // 格式化消息内容
+    const emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
+          新的联系表单提交
+        </h2>
+        
+        <div style="margin: 16px 0;">
+          <p><strong>姓名:</strong> ${name}</p>
+          <p><strong>邮箱:</strong> ${email}</p>
+          <p><strong>主题:</strong> ${subject}</p>
+        </div>
+        
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 4px; margin: 16px 0;">
+          <h3 style="margin-top: 0; color: #4b5563;">消息内容:</h3>
+          <p style="white-space: pre-line;">${message}</p>
+        </div>
+        
+        <p style="font-size: 14px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 16px;">
+          此邮件通过您的作品集网站联系表单自动发送。
+        </p>
+      </div>
+    `;
+    
+    // 发送邮件
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'Portfolio Contact <onboarding@resend.dev>', // 使用Resend的默认发件人
+        to: toEmail,
+        replyTo: email,
+        subject: `作品集联系表单: ${subject}`,
+        html: emailHtml,
+        text: `姓名: ${name}\n邮箱: ${email}\n主题: ${subject}\n\n消息:\n${message}`,
+      });
+      
+      if (error) {
+        console.error('Resend发送失败:', error);
+        return NextResponse.json(
+          { error: '邮件发送失败，请稍后重试' },
+          { status: 500 }
+        );
+      }
+      
+      console.log('邮件发送成功，ID:', data?.id);
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      console.error('邮件发送错误:', error);
       return NextResponse.json(
-        { error: '发送消息时出错' },
+        { error: '邮件发送失败，请稍后重试' },
         { status: 500 }
       );
     }
-    
-    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('联系表单处理错误:', error);
     return NextResponse.json(
-      { error: '发送消息时出错' },
+      { error: '处理请求时出错' },
       { status: 500 }
     );
   }

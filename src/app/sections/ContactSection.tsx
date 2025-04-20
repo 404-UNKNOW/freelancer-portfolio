@@ -2,11 +2,12 @@
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
+import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
 
 const ContactSection = () => {
-  // 不再直接使用邮箱环境变量
-  const formRef = useRef<HTMLFormElement>(null);
+  // 从环境变量获取邮箱地址
+  const emailAddress = process.env.NEXT_PUBLIC_EMAIL_ADDRESS || 'your-email@example.com';
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,9 +16,9 @@ const ContactSection = () => {
     honeypot: '' // 蜜罐字段用于防止机器人
   });
   
+  const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<null | 'success' | 'error'>(null);
-  const [errorMessage, setErrorMessage] = useState<string>('');
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -33,27 +34,28 @@ const ContactSection = () => {
     // 如果蜜罐字段被填写，阻止表单提交（可能是机器人）
     if (formData.honeypot) {
       console.log('Bot detected');
-      // 假装成功但实际上不发送
-      setSubmitStatus('success');
       return;
     }
     
     setIsSubmitting(true);
-    setErrorMessage('');
     
     try {
-      // 使用我们的API路由，而不是直接发送到FormSubmit
-      const response = await fetch('/api/contact', {
+      // 使用FormSubmit.co服务发送邮件，不需要后端代码
+      const response = await fetch(`https://formsubmit.co/${emailAddress}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message
+        })
       });
       
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
+      if (response.ok) {
         setSubmitStatus('success');
         // 重置表单
         setFormData({
@@ -69,18 +71,16 @@ const ContactSection = () => {
         }
       } else {
         setSubmitStatus('error');
-        setErrorMessage(result.error || 'Failed to send message. Please try again later.');
       }
     } catch (error) {
       setSubmitStatus('error');
-      setErrorMessage('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
       
       // 3秒后清除状态信息
       setTimeout(() => {
         setSubmitStatus(null);
-      }, 5000);
+      }, 3000);
     }
   };
   
@@ -132,7 +132,7 @@ const ContactSection = () => {
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">Email</h4>
-                  <p className="text-gray-600 dark:text-gray-400">Contact via form</p>
+                  <p className="text-gray-600 dark:text-gray-400">{emailAddress}</p>
                 </div>
               </div>
               
@@ -190,7 +190,7 @@ const ContactSection = () => {
               
               {submitStatus === 'error' && (
                 <div className="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-                  {errorMessage || 'Failed to send. Please try again later or use another contact method.'}
+                  Failed to send. Please try again later or email directly to {emailAddress}.
                 </div>
               )}
               
