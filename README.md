@@ -43,7 +43,7 @@ yarn install
 
 3. Create a `.env.local` file in the root directory with the following variables:
 ```
-NEXT_PUBLIC_EMAIL_ADDRESS=your-email@example.com
+EMAIL_ADDRESS=your-email@example.com
 ```
 
 4. Run the development server
@@ -79,7 +79,7 @@ This project is optimized for deployment on Vercel. Follow these steps to deploy
    
 4. **Configure Environment Variables**
    - In the Vercel project settings, add environment variables:
-   - Add `NEXT_PUBLIC_EMAIL_ADDRESS` with your email address
+   - Add `EMAIL_ADDRESS` with your email address (this will only be available server-side)
 
 5. **Deploy**
    - Click "Deploy" and wait for the build to complete
@@ -95,15 +95,17 @@ The project includes a `vercel.json` configuration file with optimized settings 
 
 This project includes several security measures:
 
-1. **Environment Variables**: Sensitive information like email addresses are stored in environment variables rather than being hardcoded.
+1. **Environment Variables**: Sensitive information like email addresses are stored in environment variables that are only accessible on the server side.
 
-2. **Honeypot Trap**: The contact form includes a hidden honeypot field to detect and prevent spam submissions from bots.
+2. **API Routes**: Contact form submissions are processed through a server-side API route, keeping your email address hidden from client-side code.
 
-3. **Form Validation**: Input validation is performed on both client and server sides.
+3. **Honeypot Trap**: The contact form includes a hidden honeypot field to detect and prevent spam submissions from bots.
 
-4. **gitignore**: Sensitive files like `.env.local` are included in `.gitignore` to prevent accidentally committing them.
+4. **Form Validation**: Input validation is performed on both client and server sides.
 
-5. **Security Headers**: When deployed on Vercel, the application uses security headers to protect against common vulnerabilities.
+5. **gitignore**: Sensitive files like `.env.local` are included in `.gitignore` to prevent accidentally committing them.
+
+6. **Security Headers**: When deployed on Vercel, the application uses security headers to protect against common vulnerabilities.
 
 ### Important Setup for Deployment
 

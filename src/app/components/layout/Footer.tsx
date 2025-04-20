@@ -5,7 +5,6 @@ import { FaGithub, FaLinkedin, FaTwitter, FaEnvelope } from 'react-icons/fa';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const emailAddress = process.env.NEXT_PUBLIC_EMAIL_ADDRESS || 'your-email@example.com';
   
   return (
     <footer className="bg-gray-50 dark:bg-gray-900">
@@ -26,9 +25,9 @@ const Footer = () => {
               <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" className="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
                 <FaTwitter size={20} />
               </a>
-              <a href={`mailto:${emailAddress}`} className="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
+              <Link href="#contact" className="text-gray-600 dark:text-gray-400 hover:text-blue-500 transition-colors">
                 <FaEnvelope size={20} />
-              </a>
+              </Link>
             </div>
           </div>
           
@@ -45,7 +44,7 @@ const Footer = () => {
           
           <div>
             <h3 className="text-lg font-semibold mb-4">Contact Info</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-2">Email: {emailAddress}</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">Email: <Link href="#contact" className="hover:text-blue-500 transition-colors">Contact Form</Link></p>
             <p className="text-gray-600 dark:text-gray-400 mb-2">Working Hours: Mon-Fri 9:00-17:00 (GMT+8)</p>
             <p className="text-gray-600 dark:text-gray-400">Location: Malaysia</p>
           </div>
