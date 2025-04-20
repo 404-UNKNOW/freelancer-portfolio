@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaPaperPlane, FaClock } from 'react-icons/fa';
 
 const ContactSection = () => {
-  // Use environment variable for email address
-  const EMAIL_ADDRESS = process.env.NEXT_PUBLIC_EMAIL_ADDRESS || 'contact@example.com';
+  // 从环境变量获取邮箱地址
+  const emailAddress = process.env.NEXT_PUBLIC_EMAIL_ADDRESS || 'your-email@example.com';
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
-    message: ''
+    message: '',
+    honeypot: '' // 蜜罐字段用于防止机器人
   });
   
+  const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<null | 'success' | 'error'>(null);
   
@@ -28,11 +30,18 @@ const ContactSection = () => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 如果蜜罐字段被填写，阻止表单提交（可能是机器人）
+    if (formData.honeypot) {
+      console.log('Bot detected');
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Using FormSubmit.co service to send emails without backend code
-      const response = await fetch(`https://formsubmit.co/${EMAIL_ADDRESS}`, {
+      // 使用FormSubmit.co服务发送邮件，不需要后端代码
+      const response = await fetch(`https://formsubmit.co/${emailAddress}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,13 +57,18 @@ const ContactSection = () => {
       
       if (response.ok) {
         setSubmitStatus('success');
-        // Reset form
+        // 重置表单
         setFormData({
           name: '',
           email: '',
           subject: '',
-          message: ''
+          message: '',
+          honeypot: ''
         });
+        
+        if (formRef.current) {
+          formRef.current.reset();
+        }
       } else {
         setSubmitStatus('error');
       }
@@ -63,7 +77,7 @@ const ContactSection = () => {
     } finally {
       setIsSubmitting(false);
       
-      // Clear status message after 3 seconds
+      // 3秒后清除状态信息
       setTimeout(() => {
         setSubmitStatus(null);
       }, 3000);
@@ -118,7 +132,7 @@ const ContactSection = () => {
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">Email</h4>
-                  <p className="text-gray-600 dark:text-gray-400">{EMAIL_ADDRESS}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{emailAddress}</p>
                 </div>
               </div>
               
@@ -176,11 +190,23 @@ const ContactSection = () => {
               
               {submitStatus === 'error' && (
                 <div className="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-                  Failed to send. Please try again later or email directly to {EMAIL_ADDRESS}.
+                  Failed to send. Please try again later or email directly to {emailAddress}.
                 </div>
               )}
               
-              <form onSubmit={handleSubmit}>
+              <form ref={formRef} onSubmit={handleSubmit}>
+                {/* 蜜罐字段 - 对用户隐藏，但机器人会填写 */}
+                <div className="hidden">
+                  <input
+                    type="text"
+                    name="honeypot"
+                    value={formData.honeypot}
+                    onChange={handleChange}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium mb-2">Name</label>

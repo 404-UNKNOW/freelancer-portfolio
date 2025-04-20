@@ -1,52 +1,40 @@
-# Freelancer Portfolio
+# Freelancer Portfolio Website
 
-A modern, responsive portfolio website for freelancers built with Next.js, React, and Tailwind CSS.
+A modern portfolio website for freelancers built with Next.js and TailwindCSS. This project showcases a professional portfolio with sections for services, projects, testimonials, and contact information.
 
 ## Features
 
-- Responsive design that looks great on all devices
+- Responsive design for all devices
 - Dark mode support
-- Animated sections with Framer Motion
+- Animated UI elements using Framer Motion
 - Contact form with email integration
 - Portfolio showcase with filtering
 - FAQ section
 - SEO optimized
 
-## Technologies Used
+## Tech Stack
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Framer Motion
-- FormSubmit.co for form handling
+- [Next.js](https://nextjs.org/) - React framework
+- [TailwindCSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Framer Motion](https://www.framer.com/motion/) - Animation library
+- [React Icons](https://react-icons.github.io/react-icons/) - Icon library
 
-## Security Considerations
-
-This project has been set up with security in mind:
-
-1. **Environment Variables**: Sensitive information like email addresses and API keys are stored in environment variables (`.env.local`) and not committed to the repository.
-
-2. **reCAPTCHA Integration**: The contact form includes Google reCAPTCHA to prevent spam and bot submissions.
-
-3. **Form Protection**: The contact form uses FormSubmit.co which includes additional spam protection.
-
-## Setup
+## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or later)
+- Node.js 14.6.0 or newer
 - npm or yarn
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/freelancer-portfolio.git
 cd freelancer-portfolio
 ```
 
-2. Install dependencies:
+2. Install dependencies
 ```bash
 npm install
 # or
@@ -56,10 +44,9 @@ yarn install
 3. Create a `.env.local` file in the root directory with the following variables:
 ```
 NEXT_PUBLIC_EMAIL_ADDRESS=your-email@example.com
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
 ```
 
-4. Run the development server:
+4. Run the development server
 ```bash
 npm run dev
 # or
@@ -68,13 +55,40 @@ yarn dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 
-## Deployment
+## Security Considerations
 
-Before deploying to production:
+This project includes several security measures:
 
-1. Replace the test reCAPTCHA site key with an actual key from the [Google reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin)
-2. Set up your environment variables on your hosting platform
+1. **Environment Variables**: Sensitive information like email addresses are stored in environment variables rather than being hardcoded.
+
+2. **Honeypot Trap**: The contact form includes a hidden honeypot field to detect and prevent spam submissions from bots.
+
+3. **Form Validation**: Input validation is performed on both client and server sides.
+
+4. **gitignore**: Sensitive files like `.env.local` are included in `.gitignore` to prevent accidentally committing them.
+
+### Important Setup for Deployment
+
+When deploying this project, make sure to:
+
+1. Set up environment variables on your hosting platform
+2. Consider adding additional security measures such as reCAPTCHA for the contact form
+3. Keep your dependencies updated to address any security vulnerabilities
+
+## Customization
+
+You can customize the portfolio by:
+
+1. Updating project information in the `projects` array in `PortfolioSection.tsx`
+2. Modifying services in the `services` array in `ServicesSection.tsx`
+3. Changing the FAQ content in the `faqs` array in `FAQSection.tsx`
+4. Updating personal information and contact details in `ContactSection.tsx` and `AboutSection.tsx`
 
 ## License
 
-MIT
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+- All icons provided by [React Icons](https://react-icons.github.io/react-icons/)
+- Design inspiration from various sources on Dribbble and Behance
