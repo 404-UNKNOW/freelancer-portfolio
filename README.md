@@ -55,6 +55,42 @@ yarn dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
 
+## Deployment on Vercel
+
+This project is optimized for deployment on Vercel. Follow these steps to deploy:
+
+1. **Create a Vercel Account**
+   - Sign up at [vercel.com](https://vercel.com) if you don't have an account
+
+2. **Install Vercel CLI (Optional)**
+   ```bash
+   npm install -g vercel
+   ```
+
+3. **Deploy using GitHub Integration**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "New Project"
+   - Import your GitHub repository
+   - Configure the project:
+     - Framework Preset: Next.js
+     - Root Directory: `./` (default)
+     - Build Command: `next build`
+     - Output Directory: `.next`
+   
+4. **Configure Environment Variables**
+   - In the Vercel project settings, add environment variables:
+   - Add `NEXT_PUBLIC_EMAIL_ADDRESS` with your email address
+
+5. **Deploy**
+   - Click "Deploy" and wait for the build to complete
+   - Your site will be accessible at a `.vercel.app` URL 
+
+6. **Custom Domain (Optional)**
+   - In project settings, navigate to "Domains"
+   - Add your custom domain and follow the verification steps
+
+The project includes a `vercel.json` configuration file with optimized settings for security headers and regional deployment.
+
 ## Security Considerations
 
 This project includes several security measures:
@@ -66,6 +102,8 @@ This project includes several security measures:
 3. **Form Validation**: Input validation is performed on both client and server sides.
 
 4. **gitignore**: Sensitive files like `.env.local` are included in `.gitignore` to prevent accidentally committing them.
+
+5. **Security Headers**: When deployed on Vercel, the application uses security headers to protect against common vulnerabilities.
 
 ### Important Setup for Deployment
 
