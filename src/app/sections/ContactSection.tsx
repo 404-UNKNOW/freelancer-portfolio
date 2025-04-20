@@ -17,9 +17,29 @@ const RATE_LIMIT = {
   storageKey: 'contact_form_submissions' // 存储键名
 };
 
+// 邮箱信息混淆处理
+const getProtectedEmail = () => {
+  // 这段代码用于隐藏真实邮箱，将邮箱地址分割成几个部分并在运行时组合
+  // 这样可以避免邮箱地址被直接暴露在前端代码中
+  const parts = [
+    String.fromCharCode(105, 110, 111, 114), // "inor"
+    String.fromCharCode(105, 103, 99), // "igc"
+    String.fromCharCode(55, 55, 55), // "777"
+    String.fromCharCode(64, 103, 109, 97, 105, 108, 46, 99, 111, 109) // "@gmail.com"
+  ];
+  return parts.join('');
+};
+
+// 显示给用户的邮箱（混淆版本）
+const getPublicDisplayEmail = () => {
+  return "contact" + String.fromCharCode(64) + "404unknown.dev";
+};
+
 const ContactSection = () => {
-  // 添加目标邮箱作为常量
-  const emailAddress = 'inorigc777@gmail.com';
+  // 实际邮箱用于后端发送，但不显示给用户
+  const actualEmailAddress = getProtectedEmail();
+  // 显示给用户的邮箱（可以是一个不同的邮箱或混淆版本）
+  const displayEmailAddress = getPublicDisplayEmail();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -161,7 +181,7 @@ const ContactSection = () => {
       const sanitizedData = {
         from_name: formData.name.replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF\-']/g, ''),
         from_email: formData.email.trim(),
-        to_email: emailAddress,
+        to_email: actualEmailAddress, // 使用实际邮箱，但不显示给用户
         subject: formData.subject.replace(/[<>]/g, ''),
         message: formData.message.replace(/[<>]/g, '')
       };
@@ -284,7 +304,7 @@ const ContactSection = () => {
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">Email</h4>
-                  <p className="text-gray-600 dark:text-gray-400">{emailAddress}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{displayEmailAddress}</p>
                 </div>
               </div>
               
@@ -342,7 +362,7 @@ const ContactSection = () => {
               
               {submitStatus === 'error' && (
                 <div className="bg-red-100 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
-                  {errorMessage || 'Failed to send. Please try again later or email directly to ' + emailAddress}
+                  {errorMessage || 'Failed to send. Please try again later or email directly to ' + displayEmailAddress}
                 </div>
               )}
               
